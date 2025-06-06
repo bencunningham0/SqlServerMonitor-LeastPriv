@@ -1,0 +1,44 @@
+{
+  "description": "SQL DB Monitoring Security Configuration",
+  "version": "1.0.0",
+  "accounts": [
+    {
+      "name": "DOMAIN\\gmsa_sqlmon01$",
+      "description": "Primary SQL DB monitoring account",
+      "skipGroupMembership": false,
+      "skipWmiPermissions": false,
+      "skipSqlPermissions": false,
+      "skipServicePermissions": false,
+      "restartWmi": true
+    }
+  ],
+  "settings": {
+    "logLevel": "Verbose",
+    "backupExistingPermissions": true,
+    "validateChanges": true
+  },
+  "serviceConfigurations": {
+    "services": [
+      {
+        "name": "scmanager",
+        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
+      },
+      {
+        "name": "mssqlserver",
+        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
+      },
+      {
+        "name": "SQLSERVERAGENT",
+        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
+      },
+      {
+        "name": "sqlbrowser",
+        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
+      },
+      {
+        "name": "MSSQLFDLauncher",
+        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
+      }
+    ]
+  }
+}
