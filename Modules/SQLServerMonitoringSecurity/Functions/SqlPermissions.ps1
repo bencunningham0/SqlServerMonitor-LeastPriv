@@ -141,6 +141,11 @@ function Set-SqlLogsShare {
         if (-not $existingShare) {
             # Create the share
             New-SmbShare -Name $shareName -Path $logsPath -Description "SQL Server Logs" -ErrorAction Stop
+            
+            # Remove Everyone permissions for security
+            Revoke-SmbShareAccess -Name $shareName -AccountName "Everyone" -Force
+            Write-Verbose "Removed Everyone permissions from share $shareName"
+            
             Write-Verbose "Created share $shareName at path $logsPath"
         } else {
             Write-Verbose "Share $shareName already exists"
