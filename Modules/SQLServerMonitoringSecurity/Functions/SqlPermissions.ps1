@@ -5,7 +5,7 @@ function Set-SqlLogPermissions {
     
     .DESCRIPTION
     This function locates the SQL Server installation directory and grants the specified
-    user account Modify permissions on the SQL Server log directory. This is typically
+    user account Read permissions on the SQL Server log directory. This is typically
     required for monitoring accounts that need to read SQL Server log files.
     
     .PARAMETER UserAccount
@@ -14,7 +14,7 @@ function Set-SqlLogPermissions {
     .EXAMPLE
     Set-SqlLogPermissions -UserAccount "DOMAIN\User"
     
-    Grants Modify permissions to the specified group managed service account on the SQL Server logs directory.
+    Grants Read permissions to the specified group managed service account on the SQL Server logs directory.
     
     .NOTES
     This function requires administrative privileges to modify file system permissions.
@@ -53,7 +53,7 @@ function Set-SqlLogPermissions {
         # Check if permission already exists
         $exists = $acl.Access | Where-Object {
             $_.IdentityReference -eq $UserAccount -and
-            $_.FileSystemRights -like "*Modify*" -and
+            $_.FileSystemRights -like "*Read*" -and
             $_.InheritanceFlags -eq "ContainerInherit, ObjectInherit" -and
             $_.PropagationFlags -eq "None" -and
             $_.AccessControlType -eq "Allow"
@@ -67,7 +67,7 @@ function Set-SqlLogPermissions {
         # Create new rule
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
             $UserAccount,
-            "Modify",
+            "Read",
             "ContainerInherit,ObjectInherit",
             "None",
             "Allow"
@@ -77,7 +77,7 @@ function Set-SqlLogPermissions {
         $acl.AddAccessRule($rule)
         Set-Acl -Path $logsPath -AclObject $acl
 
-        Write-Verbose "Successfully granted Modify permissions to $UserAccount on $logsPath"
+        Write-Verbose "Successfully granted Read permissions to $UserAccount on $logsPath"
     }
     catch {
         Write-Error "Failed to set permissions: $_"
