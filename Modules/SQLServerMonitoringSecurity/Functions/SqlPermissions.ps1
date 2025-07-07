@@ -10,11 +10,19 @@ function Set-SqlLogPermissions {
     
     .PARAMETER UserAccount
     The user account or group to grant permissions to, in DOMAIN\User format.
-    
+
+    .PARAMETER LogFolder
+    (Optional) The path to the SQL Server log folder. If specified, this path will be used instead of auto-detecting from the registry.
+
     .EXAMPLE
     Set-SqlLogPermissions -UserAccount "DOMAIN\User"
-    
+
     Grants Read permissions to the specified group managed service account on the SQL Server logs directory.
+
+    .EXAMPLE
+    Set-SqlLogPermissions -UserAccount "DOMAIN\User" -LogFolder "D:\SQLLogs"
+
+    Grants Read permissions to the specified account on the explicitly provided log folder.
     
     .NOTES
     This function requires administrative privileges to modify file system permissions.
@@ -23,7 +31,9 @@ function Set-SqlLogPermissions {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$UserAccount
+        [string]$UserAccount,
+        [Parameter(Mandatory = $false)]
+        [string]$LogFolder
     )
 
     try {
@@ -32,17 +42,18 @@ function Set-SqlLogPermissions {
             throw "Account $UserAccount does not exist or cannot be resolved"
         }
 
-        # Find SQL Server instance path from registry
-        $sqlPath = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL*.MSSQLSERVER\Setup" -ErrorAction Stop | 
-            Select-Object -ExpandProperty SQLPath -First 1
-
-        if (-not $sqlPath) {
-            throw "SQL Server installation path not found"
+        if ($LogFolder) {
+            $logsPath = $LogFolder
+        } else {
+            # Find SQL Server instance path from registry
+            $sqlPath = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL*.MSSQLSERVER\Setup" -ErrorAction Stop | 
+                Select-Object -ExpandProperty SQLPath -First 1
+            if (-not $sqlPath) {
+                throw "SQL Server installation path not found"
+            }
+            # Construct logs path
+            $logsPath = Join-Path $sqlPath "Log"
         }
-
-        # Construct logs path
-        $logsPath = Join-Path $sqlPath "Log"
-        
         if (-not (Test-Path $logsPath)) {
             throw "SQL Server logs directory not found at: $logsPath"
         }
@@ -96,11 +107,19 @@ function Set-SqlLogsShare {
     
     .PARAMETER UserAccount
     The user account or group to grant read access to the share.
-    
+
+    .PARAMETER LogFolder
+    (Optional) The path to the SQL Server log folder. If specified, this path will be used instead of auto-detecting from the registry.
+
     .EXAMPLE
     Set-SqlLogsShare -UserAccount "DOMAIN\MonitoringAccount"
-    
+
     Creates a SQLLogs$ share and grants read access to the specified account.
+
+    .EXAMPLE
+    Set-SqlLogsShare -UserAccount "DOMAIN\MonitoringAccount" -LogFolder "D:\SQLLogs"
+
+    Creates a SQLLogs$ share for the specified folder and grants read access to the specified account.
     
     .NOTES
     This function requires administrative privileges to create network shares and modify share permissions.
@@ -109,7 +128,9 @@ function Set-SqlLogsShare {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$UserAccount
+        [string]$UserAccount,
+        [Parameter(Mandatory = $false)]
+        [string]$LogFolder
     )
 
     try {
@@ -118,17 +139,18 @@ function Set-SqlLogsShare {
             throw "Account $UserAccount does not exist or cannot be resolved"
         }
 
-        # Find SQL Server instance path from registry
-        $sqlPath = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL*.MSSQLSERVER\Setup" -ErrorAction Stop | 
-            Select-Object -ExpandProperty SQLPath -First 1
-
-        if (-not $sqlPath) {
-            throw "SQL Server installation path not found"
+        if ($LogFolder) {
+            $logsPath = $LogFolder
+        } else {
+            # Find SQL Server instance path from registry
+            $sqlPath = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL*.MSSQLSERVER\Setup" -ErrorAction Stop | 
+                Select-Object -ExpandProperty SQLPath -First 1
+            if (-not $sqlPath) {
+                throw "SQL Server installation path not found"
+            }
+            # Construct logs path
+            $logsPath = Join-Path $sqlPath "Log"
         }
-
-        # Construct logs path
-        $logsPath = Join-Path $sqlPath "Log"
-        
         if (-not (Test-Path $logsPath)) {
             throw "SQL Server logs directory not found at: $logsPath"
         }

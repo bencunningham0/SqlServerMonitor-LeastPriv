@@ -29,7 +29,10 @@ function Set-SQLServerMonitoringPermissions {
     
     .PARAMETER RestartWmi
     Restart the WMI service after making permission changes.
-    
+
+    .PARAMETER SqlLogFolder
+    The path to the SQL Server log folder. If specified, this path will be used for log permission and share configuration.
+
     .PARAMETER ServiceConfigurations
     Array of service configurations with name and access flags. If not provided, default configurations will be used.
     
@@ -62,22 +65,25 @@ function Set-SQLServerMonitoringPermissions {
     param(
         [Parameter(Mandatory = $true)]
         [string]$AccountName,
-        
+
         [Parameter()]
         [switch]$SkipGroupMembership,
-        
+
         [Parameter()]
         [switch]$SkipWmiPermissions,
-        
+
         [Parameter()]
         [switch]$SkipSqlPermissions,
-        
+
         [Parameter()]
         [switch]$SkipServicePermissions,
-        
+
         [Parameter()]
         [switch]$RestartWmi,
-        
+
+        [Parameter()]
+        [string]$SqlLogFolder,
+
         [Parameter()]
         [array]$ServiceConfigurations = @(
             @{
@@ -157,19 +163,27 @@ function Set-SQLServerMonitoringPermissions {
         # Configure SQL Server permissions
         if (-not $SkipSqlPermissions) {
             Write-Verbose "Configuring SQL Server permissions..."
-            
+
             # Set SQL Server log permissions
             try {
-                Set-SqlLogPermissions -UserAccount $AccountName
+                if ($SqlLogFolder) {
+                    Set-SqlLogPermissions -UserAccount $AccountName -LogFolder $SqlLogFolder
+                } else {
+                    Set-SqlLogPermissions -UserAccount $AccountName
+                }
                 Write-Verbose "SQL Server log permissions configured successfully"
             }
             catch {
                 Write-Warning "Failed to configure SQL Server log permissions: $_"
                 $errorCount++
             }
-                  # Set SQL Server logs share
+            # Set SQL Server logs share
             try {
-                Set-SqlLogsShare -UserAccount $AccountName
+                if ($SqlLogFolder) {
+                    Set-SqlLogsShare -UserAccount $AccountName -LogFolder $SqlLogFolder
+                } else {
+                    Set-SqlLogsShare -UserAccount $AccountName
+                }
                 Write-Verbose "SQL Server logs share configured successfully"
             }
             catch {

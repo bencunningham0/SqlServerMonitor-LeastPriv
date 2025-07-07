@@ -30,6 +30,9 @@ Skip configuring Windows service permissions.
 .PARAMETER RestartWmi
 Restart the WMI service after making permission changes.
 
+.PARAMETER SqlLogFolder
+Path to the SQL Server log folder. If specified, this path will be used for log permission and share configuration.
+
 .EXAMPLE
 .\Set-SQLServerMonitoringSecurity.ps1 -Verbose
 
@@ -45,6 +48,11 @@ Configures permissions for a custom account but skips SQL Server configurations.
 
 Configures permissions for multiple accounts defined in a configuration file.
 
+.EXAMPLE
+.\Set-SQLServerMonitoringSecurity.ps1 -AccountName "DOMAIN\MonitoringAccount" -SqlLogFolder "D:\SQLLogs"
+
+Configures permissions for a custom account and explicitly sets the SQL log folder path.
+
 .NOTES
 This script requires administrative privileges to execute successfully.
 It's designed to be idempotent - running it multiple times will not cause issues.
@@ -54,24 +62,27 @@ It's designed to be idempotent - running it multiple times will not cause issues
 param(
     [Parameter(Mandatory = $false)]
     [string]$AccountName,
-    
+
     [Parameter(Mandatory = $false)]
     [string]$ConfigFile,
-    
+
     [Parameter()]
     [switch]$SkipGroupMembership,
-    
+
     [Parameter()]
     [switch]$SkipWmiPermissions,
-    
+
     [Parameter()]
     [switch]$SkipSqlPermissions,
-    
+
     [Parameter()]
     [switch]$SkipServicePermissions,
-    
+
     [Parameter()]
-    [switch]$RestartWmi
+    [switch]$RestartWmi,
+
+    [Parameter(Mandatory = $false)]
+    [string]$SqlLogFolder
 )
 
 # Set error action preference
@@ -115,7 +126,7 @@ try {
         
         foreach ($account in $config.accounts) {
             Write-Host "`nConfiguring permissions for account: $($account.name)" -ForegroundColor Yellow
-            
+
             $params = @{
                 AccountName = $account.name
                 SkipGroupMembership = $account.skipGroupMembership -eq $true
@@ -124,12 +135,19 @@ try {
                 SkipServicePermissions = $account.skipServicePermissions -eq $true
                 RestartWmi = $account.restartWmi -eq $true
             }
-            
+
+            # Add SqlLogFolder if present in config
+            if ($account.PSObject.Properties.Name -contains 'sqlLogFolder' -and $account.sqlLogFolder) {
+                $params['SqlLogFolder'] = $account.sqlLogFolder
+            } elseif ($SqlLogFolder) {
+                $params['SqlLogFolder'] = $SqlLogFolder
+            }
+
             # Add service configurations if available
             if ($serviceConfigs) {
                 $params['ServiceConfigurations'] = $serviceConfigs
             }
-            
+
             Set-SQLServerMonitoringPermissions @params -Verbose:$($VerbosePreference -eq 'Continue')
         }
     }
@@ -145,7 +163,11 @@ try {
             SkipServicePermissions = $SkipServicePermissions
             RestartWmi = $RestartWmi
         }
-        
+
+        if ($SqlLogFolder) {
+            $params['SqlLogFolder'] = $SqlLogFolder
+        }
+
         # If config file exists in default location, try to read service configurations
         $defaultConfigPath = Join-Path $ScriptDirectory "..\Config\config.json"
         if (Test-Path $defaultConfigPath) {
@@ -159,7 +181,7 @@ try {
                 Write-Warning "Failed to read service configurations from default config file: $_"
             }
         }
-        
+
         Set-SQLServerMonitoringPermissions @params -Verbose:$($VerbosePreference -eq 'Continue')
     }
     
