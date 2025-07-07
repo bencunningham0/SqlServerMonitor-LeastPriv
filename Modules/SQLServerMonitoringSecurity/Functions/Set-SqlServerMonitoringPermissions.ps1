@@ -91,19 +91,7 @@ function Set-SQLServerMonitoringPermissions {
                 accessFlags = @("ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl")
             },
             @{
-                name = "mssqlserver" 
-                accessFlags = @("ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl")
-            },
-            @{
-                name = "SQLSERVERAGENT"
-                accessFlags = @("ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl")
-            },
-            @{
-                name = "sqlbrowser"
-                accessFlags = @("ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl")
-            },
-            @{
-                name = "MSSQLFDLauncher"
+                DisplayNameRegex = "^SQL Server.*"
                 accessFlags = @("ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl")
             }
         )
@@ -195,12 +183,35 @@ function Set-SQLServerMonitoringPermissions {
         # Configure service permissions
         if (-not $SkipServicePermissions) {
             Write-Verbose "Configuring Windows service permissions..."
-            
             foreach ($service in $ServiceConfigurations) {
                 try {
-                    $result = Add-ServiceAcl -Service $service.name -Group $AccountName -AccessFlags $service.accessFlags -Verbose:$($VerbosePreference -eq 'Continue')
-                    if ($result) {
-                        Write-Verbose "Service permissions configured for $($service.name)"
+                    # If DisplayNameRegex is specified, try to find all matching services by display name or name
+                    if ($service.PSObject.Properties.Name -contains 'DisplayNameRegex' -and $service.DisplayNameRegex) {
+                        $matchedServices = Get-Service | Where-Object { $_.DisplayName -match $service.DisplayNameRegex -or $_.Name -match $service.DisplayNameRegex }
+                        if ($matchedServices) {
+                            foreach ($matchedService in $matchedServices) {
+                                $serviceName = $matchedService.Name
+                                Write-Verbose "Matched service by DisplayNameRegex '$($service.DisplayNameRegex)': $serviceName"
+                                Write-Verbose "Configuring permissions for service: $serviceName"
+                                $result = Add-ServiceAcl -Service $serviceName -Group $AccountName -AccessFlags $service.accessFlags -Verbose:$($VerbosePreference -eq 'Continue')
+                                if ($result) {
+                                    Write-Verbose "Service permissions configured for $serviceName"
+                                }
+                            }
+                        } else {
+                            Write-Warning "No service matched DisplayNameRegex '$($service.DisplayNameRegex)'. Skipping."
+                            continue
+                        }
+                    } elseif ($service.PSObject.Properties.Name -contains 'name' -and $service.name) {
+                        $serviceName = $service.name
+                        Write-Verbose "Configuring permissions for service: $serviceName"
+                        $result = Add-ServiceAcl -Service $serviceName -Group $AccountName -AccessFlags $service.accessFlags -Verbose:$($VerbosePreference -eq 'Continue')
+                        if ($result) {
+                            Write-Verbose "Service permissions configured for $serviceName"
+                        }
+                    } else {
+                        Write-Warning "Service configuration missing both 'name' and 'DisplayNameRegex'. Skipping."
+                        continue
                     }
                 }
                 catch {

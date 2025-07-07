@@ -24,19 +24,7 @@
         "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
       },
       {
-        "name": "mssqlserver",
-        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
-      },
-      {
-        "name": "SQLSERVERAGENT",
-        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
-      },
-      {
-        "name": "sqlbrowser",
-        "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
-      },
-      {
-        "name": "MSSQLFDLauncher",
+        "DisplayNameRegex": "^SQL Server.*",
         "accessFlags": ["ChangeConfig", "QueryStatus", "QueryConfig", "ReadControl"]
       }
     ]
