@@ -1,2 +1,3 @@
 Config/*
 !Config/config.json.example
+Scripts/Invoke-RemoteSetMonitoringSecurity-*.ps1
