@@ -66,6 +66,19 @@ function Add-ServiceAcl {
         [string[]]$AccessFlags = @('QueryConfig', 'QueryStatus', 'EnumerateDependents', 'ReadControl')
     )
 
+    Write-Host "Processing $Service service"
+
+    # Check if the service exists before proceeding
+    $serviceObj = if ($Computer) { 
+        Get-Service -Name $Service -ComputerName $Computer -ErrorAction SilentlyContinue 
+    } else { 
+        Get-Service -Name $Service -ErrorAction SilentlyContinue 
+    }
+    if (-not $serviceObj) {
+        Write-Warning "Service '$Service' does not exist. Skipping."
+        return $false
+    }
+
     # Map access rights to their numeric values
     $accessMap = @{
         'QueryConfig' = 'RP'; 'ChangeConfig' = 'CC'; 'QueryStatus' = 'LC';
