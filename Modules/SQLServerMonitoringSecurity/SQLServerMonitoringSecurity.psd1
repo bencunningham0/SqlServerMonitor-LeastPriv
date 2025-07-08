@@ -6,7 +6,7 @@
     Description = 'PowerShell module for configuring least privilege security permissions for SQL DB monitoring accounts'
     
     # Minimum version of the PowerShell engine required by this module
-    PowerShellVersion = '5.1'
+    PowerShellVersion = '4.0'
     
     # Functions to export from this module
     FunctionsToExport = @(

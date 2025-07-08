@@ -121,8 +121,13 @@ function Set-SQLServerMonitoringPermissions {
             foreach ($group in $groups) {
                 try {
                     if (-not (Test-LocalGroupMembership -GroupName $group -MemberName $AccountName)) {
-                        Add-LocalGroupMember -Group $group -Member $AccountName -ErrorAction Stop
-                        Write-Verbose "Added $AccountName to $group"
+                        $computer = $env:COMPUTERNAME
+                        $groupPath = "WinNT://$computer/$group,group"
+                        $adsiGroup = [ADSI]$groupPath
+                        $sid = Convert-AccountToSid -account $AccountName
+                        $memberPath = "WinNT://$sid"
+                        $adsiGroup.Add($memberPath)
+                        Write-Verbose "Added $AccountName (SID: $sid) to $group"
                     }
                     else {
                         Write-Verbose "$AccountName is already a member of $group"

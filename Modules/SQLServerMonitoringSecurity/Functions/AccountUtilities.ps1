@@ -32,10 +32,23 @@ function Test-LocalGroupMembership {
     )
     
     try {
-        $group = Get-LocalGroupMember -Group $GroupName -ErrorAction Stop
-        return ($group | Where-Object { $_.Name -eq $MemberName -or $_.Name.EndsWith("\$MemberName") }) -ne $null
-    }
-    catch {
+        # Use ADSI for compatibility with PowerShell 4/Server 2012 R2
+        $computer = $env:COMPUTERNAME
+        $groupPath = "WinNT://$computer/$GroupName,group"
+        $group = [ADSI]$groupPath
+        $members = @()
+        foreach ($member in $group.psbase.Invoke('Members')) {
+            $obj = $member.GetType().InvokeMember('Name', 'GetProperty', $null, $member, $null)
+            $domain = $member.GetType().InvokeMember('Domain', 'GetProperty', $null, $member, $null)
+            if ($domain) {
+                $fullName = "$domain\$obj"
+            } else {
+                $fullName = $obj
+            }
+            $members += $fullName
+        }
+        return $members -contains $MemberName
+    } catch {
         Write-Verbose "Failed to check group membership for $MemberName in $GroupName`: $_"
         return $false
     }

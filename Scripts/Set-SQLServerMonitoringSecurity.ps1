@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+#Requires -Version 4.0
 #Requires -RunAsAdministrator
 
 <#
@@ -115,7 +115,19 @@ try {
         }
         
         Write-Host "Processing configuration file: $ConfigFile" -ForegroundColor Cyan
-        $config = Get-Content $ConfigFile | ConvertFrom-Json
+        try {
+            $config = Get-Content $ConfigFile -Raw | ConvertFrom-Json
+        } catch {
+            # PowerShell 4 fallback: use JavaScriptSerializer
+            try {
+                Add-Type -AssemblyName System.Web.Extensions -ErrorAction Stop
+                $json = Get-Content $ConfigFile -Raw
+                $jss = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+                $config = $jss.DeserializeObject($json)
+            } catch {
+                throw "Failed to parse config file as JSON: $ConfigFile. $_"
+            }
+        }
         
         # Extract service configurations if available
         $serviceConfigs = if ($config.serviceConfigurations -and $config.serviceConfigurations.services) {
@@ -172,7 +184,19 @@ try {
         $defaultConfigPath = Join-Path $ScriptDirectory "..\Config\config.json"
         if (Test-Path $defaultConfigPath) {
             try {
-                $config = Get-Content $defaultConfigPath | ConvertFrom-Json
+                try {
+                    $config = Get-Content $defaultConfigPath -Raw | ConvertFrom-Json
+                } catch {
+                    # PowerShell 4 fallback: use JavaScriptSerializer
+                    try {
+                        Add-Type -AssemblyName System.Web.Extensions -ErrorAction Stop
+                        $json = Get-Content $defaultConfigPath -Raw
+                        $jss = New-Object System.Web.Script.Serialization.JavaScriptSerializer
+                        $config = $jss.DeserializeObject($json)
+                    } catch {
+                        throw "Failed to parse config file as JSON: $defaultConfigPath. $_"
+                    }
+                }
                 if ($config.serviceConfigurations -and $config.serviceConfigurations.services) {
                     $params['ServiceConfigurations'] = $config.serviceConfigurations.services
                 }
